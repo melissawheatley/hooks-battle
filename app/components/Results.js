@@ -45,34 +45,39 @@ ProfileList.propTypes = {
 
 }
 
-export default class Results extends React.Component {
-    state ={
-        winner: null,
-        loser: null,
-        error: null,
-        loading: true
+function battleReducer(state, action){
+    if(action.type === 'success'){
+        return{
+            winner: action.winner,
+            loser: action.loser,
+            error: null,
+            loading: false
+        }
+    }else if(action.type === 'error'){
+        return{
+            ...state,
+            error: action.message,
+            loading: false
+        }
+    }else{
+        throw new Error (`action type not supported`)
     }
-    
-    componentDidMount(){
-        const {playerOne, playerTwo} = queryString.parse(this.props.location.search)
+}
 
-        battle([playerOne, playerTwo])
-            .then((players) => {
-                this.setState({
-                    winner: players[0],
-                    loser: players[1],
-                    error: null,
-                    loading: false
-                })
-            }).catch(({message}) => {
-                this.setState({
-                    error: message,
-                    loading: false
-                })
-            })
-    }
-    render(){
-        const{ winner, loser, error, loading} = this.state
+export default function Results ({location}){
+    const {playerOne, playerTwo} = queryString.parse(location.search)
+    const [ state, dispatch ] = React.useReducer(
+        battleReducer,
+        {winner: null, loser: null, error: null, loading: true}
+    )
+
+    React.useEffect(()=> {
+        battle([ playerOne, playerTwo])
+            .then((players) => dispatch({type: 'success', winner: players[0], loser: players[1] }))
+            .catch((message) => dispatch({ type: 'error', message} ))
+    }, [playerOne, playerTwo])
+
+        const{ winner, loser, error, loading} = state
 
         if (loading === true){
             return(
@@ -118,4 +123,3 @@ export default class Results extends React.Component {
             </React.Fragment>
         )
     }
-}
